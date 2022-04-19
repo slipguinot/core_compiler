@@ -56,6 +56,7 @@ tokens = [
     'MAIOR',
     'MAIOR_IGUAL',
     'FIMLINHA',
+    'ASPAS_DUPLAS',
     'WHITESPACE',
     'QUEISSO?' #algo inesperado
 ]
@@ -102,6 +103,7 @@ lexemes = [
     r'>',
     r'>=',
     r'\n',
+    r'"',
     r'[ \t\f\r\v]+', #WHITESPACE
     r'.', #algo que não foi esperado
 ]
@@ -109,7 +111,7 @@ lexemes = [
 
 tokenLexema = []
 
-for i in range(0, 42):
+for i in range(0, len(lexemes) - 1):
     tokenLexema.append((tokens[i], lexemes[i]))
 
 tokenPattern = '|'.join('(?P<%s>%s)' % x for x in tokenLexema)
