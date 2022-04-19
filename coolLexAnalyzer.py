@@ -55,6 +55,7 @@ tokens = [
     'MENOR_IGUAL',
     'MAIOR',
     'MAIOR_IGUAL',
+    'FIMLINHA',
     'WHITESPACE',
     'QUEISSO?' #algo inesperado
 ]
@@ -100,26 +101,26 @@ lexemes = [
     r'<=',
     r'>',
     r'>=',
-    r'[ \t\n\f\r\v]+', #WHITESPACE
+    r'\n',
+    r'[ \t\f\r\v]+', #WHITESPACE
     r'.', #algo que não foi esperado
 ]
 
 
 tokenLexema = []
 
-
-for i in range(0, 26):
+for i in range(0, 42):
     tokenLexema.append((tokens[i], lexemes[i]))
 
 tokenPattern = '|'.join('(?P<%s>%s)' % x for x in tokenLexema)
 
-lin_start = 0
+comecoLinha = 0
 
 token = []
 lexeme = []
 row = []
 column = []
-lin_num = 1
+numeroLinha = 1
 for m in re.finditer(tokenPattern, fullCode):
     token_type = m.lastgroup
     token_lexeme = m.group(token_type)
@@ -128,15 +129,18 @@ for m in re.finditer(tokenPattern, fullCode):
             token_type = 'TYPE_IDENTIFIER'
         else:
             token_type = 'OBJECT_IDENTIFIER'
-    if token_type == 'WHITESPACE':
+    elif token_type == 'FIMLINHA':
+        comecoLinha = m.end()
+        numeroLinha += 1
+    elif token_type == 'WHITESPACE':
         continue
     elif token_type == 'QUEISSO':
-        raise RuntimeError('%r unexpected on line %d' % (token_lexeme, lin_num))
+        raise RuntimeError('%r erro desconhecido em %d' % (token_lexeme, numeroLinha))
     else:
-            col = m.start() - lin_start
+            col = m.start() - comecoLinha
             column.append(col)
             token.append(token_type)
             lexeme.append(token_lexeme)
-            row.append(lin_num)
-            print('Token = {0}, Lexema = \'{1}\', Linha = {2}, Coluna = {3}'.format(token_type, token_lexeme, lin_num, col))
+            row.append(numeroLinha)
+            print('Token = {0}, Lexema = \'{1}\', Linha = {2}, Coluna = {3}'.format(token_type, token_lexeme, numeroLinha, col))
            
