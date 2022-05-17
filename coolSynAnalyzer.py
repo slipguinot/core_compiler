@@ -14,47 +14,6 @@ def read_tokens(path: str):
 
     return list_tokens
 
-
-
-""" class Parser:
-    def __init__(self, tokens, path):
-        self.tokens = read_tokens(path)
-        self.pos = 0
-
-    def forward(self, steps=1):
-        self.pos += steps
-
-    def backward(self, steps=1):
-        self.pos -= steps
-
-    def current_token(self):
-        if self.pos < len(self.tokens):
-            self.current = self.tokens[self.pos]
-
-        return self.current
-
-
-    def expr(self):
-        token = self.current
-
-        if token[1] == ' INTEGER':
-            return {'type' : 'integer', 'value': token[0]}
-
-
-    def parserClass(self):
-        token = self.current
-
-        return {'type': 'class', }
-
-
-
-    
-    def parserProgram(self):
-        token = self.current
-
-        if token[1] == ' CLASS':
-            return parserClass() """
-
         
 class Parser:
     def __init__(self):
@@ -190,7 +149,7 @@ def parseFormal(tokens, pos):
         return {'type': 'formal', 'value': [parseID(tokens, pos-1), parsePONTOS(tokens, pos), parseID(tokens, pos+1)]  }"""
 
 
-
+#trecho de teste
 
 hi = [('class ', ' CLASS'), ('CellularAutomaton', ' TYPE_IDENTIFIER'), ('inherits ', ' INHERITS'), ('IO', ' TYPE_IDENTIFIER'), 
 ('{', ' CHAVES_E'), ('population_map', ' OBJECT_IDENTIFIER'), ('}', ' CHAVES_D')]
@@ -200,8 +159,4 @@ p = Parser()
 result = p.parseProgram(hi)
 
 print(result)
-
-# file = read_tokens(r'C:/Users/014311631/Documents/result.txt')
-
-# print(file)
 
