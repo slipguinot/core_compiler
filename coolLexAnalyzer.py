@@ -1,20 +1,67 @@
-#leitura do arquivo com o codigo
 import re
-file = open('reference.txt', 'r')
-linha = file.readline()
-leitor = []
 
-while linha != "":
-    leitor.append(linha)
-    linha = file.readline()
-    if linha == "":
-        leitor.append(' ')
-        fullCode = ''.join(leitor)
-        leitor = []
-file.close()
-#print(fullCode)
+#função de leitura de arquivo
+def read_file(filename: str):
+    
+    with open(filename, 'r') as f:
+        prog = f.read()
+        prog = prog.replace('\t', '').replace('\n', ' ').replace('    ', ' ')
+        return prog
+
+
+#função para salvar o arquivo resultante
+def save_file(path: str, content):
+    
+    text_file = open(path, "w")
+    
+    for tupla in content:
+        print(tupla)
+        text_file.write(tupla + '\n')
+        text_file.flush()
+    
+    text_file.close()
+    print('O arquivo foi salvo.')
+
+
+code = read_file('program.txt')
+
+#função para deletar comentários do código na linguagem COOL
+def delete_comments(code: str):
+    i=0
+    size = len(code) - 1
+    new_code = []
+
+    while (i+1)<size:
+        string = ''
+        if (code[i] + code[i+1]) == "(*":
+            string = code[i] + code[i+1]
+            i+=2
+
+                
+            while (code[i] + code[i+1]) != "*)":
+                string += code[i]
+
+                i+=1
+        
+            i+=2
+
+            string += "*)"            
+            new_code.append(string)
+
+        else:
+            i+=1
+
+    for i in new_code:
+        code=code.replace(i, '')
+
+    return code
+
+
+fullCode = delete_comments(code)
+
 
 tokens = [
+    'STRING',
     'SELF',
     'SELF_TYPE',
     'TRUE',
@@ -54,14 +101,15 @@ tokens = [
     'MENOR',
     'MENOR_IGUAL',
     'MAIOR',
-    'MAIOR_IGUAL',
-    'FIMLINHA',
-    'ASPAS_DUPLAS',
+    'ATRIBUICAO_CASE',
     'WHITESPACE',
+    'ASPAS',
+    'DOIS_PONTOS',
     'QUEISSO?' #algo inesperado
 ]
 
 lexemes = [
+    r'\"(.*?)\"',
     r'self', #self
     r'SELF_TYPE', #selftype
     r't(?i)rue(\s)', #TRUE
@@ -94,35 +142,38 @@ lexemes = [
     r',',
     r';',
     r'<-',
-    r'==',
+    r'=',
     r'!=',
     r'\+',
     r'/',
     r'<',
     r'<=',
     r'>',
-    r'>=',
-    r'\n',
+    r'=>',
+    r'[ \t\n\f\r\v]+', #WHITESPACE
     r'"',
-    r'[ \t\f\r\v]+', #WHITESPACE
+    r':',
     r'.', #algo que não foi esperado
 ]
 
 
 tokenLexema = []
 
-for i in range(0, len(lexemes) - 1):
+
+for i in range(0, len(lexemes)-1):
     tokenLexema.append((tokens[i], lexemes[i]))
 
 tokenPattern = '|'.join('(?P<%s>%s)' % x for x in tokenLexema)
 
-comecoLinha = 0
+lin_start = 0
 
 token = []
 lexeme = []
 row = []
 column = []
-numeroLinha = 1
+lin_num = 1
+
+list_tok = []
 for m in re.finditer(tokenPattern, fullCode):
     token_type = m.lastgroup
     token_lexeme = m.group(token_type)
@@ -131,18 +182,19 @@ for m in re.finditer(tokenPattern, fullCode):
             token_type = 'TYPE_IDENTIFIER'
         else:
             token_type = 'OBJECT_IDENTIFIER'
-    elif token_type == 'FIMLINHA':
-        comecoLinha = m.end()
-        numeroLinha += 1
-    elif token_type == 'WHITESPACE':
+    
+    if token_type == 'WHITESPACE':
         continue
     elif token_type == 'QUEISSO':
-        raise RuntimeError('%r erro desconhecido em %d' % (token_lexeme, numeroLinha))
+        raise RuntimeError('%r unexpected on line %d' % (token_lexeme, lin_num))
+    
     else:
-            col = m.start() - comecoLinha
-            column.append(col)
-            token.append(token_type)
-            lexeme.append(token_lexeme)
-            row.append(numeroLinha)
-            print('Token = {0}, Lexema = \'{1}\', Linha = {2}, Coluna = {3}'.format(token_type, token_lexeme, numeroLinha, col))
+        col = m.start() - lin_start
+        column.append(col)
+        token.append(token_type)
+        lexeme.append(token_lexeme)
+        row.append(lin_num)
+        #print('({0}, {1})'.format(token_type, token_lexeme))
+        list_tok.append('(' + token_lexeme + ', ' + token_type + ')')
            
+save_file('result.txt', list_tok)
