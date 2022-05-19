@@ -62,8 +62,8 @@ fullCode = delete_comments(code)
 
 tokens = [
     'STRING',
-    'SELF',
     'SELF_TYPE',
+    'SELF',
     'TRUE',
     'FALSE',
     'CLASS',
@@ -111,8 +111,8 @@ tokens = [
 
 lexemes = [
     r'\"(.*?)\"',
-    r'self', #self
     r'SELF_TYPE', #selftype
+    r'self', #self
     r't(?i)rue(\s)', #TRUE
     r'f(?i)alse(\s)', #FALSE
     r'(?i)class(\s)', #BREAK
