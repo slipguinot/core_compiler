@@ -1,5 +1,5 @@
 import coolLexAnalyzer as lex
-
+from anytree import AnyNode, RenderTree
 
 def read_tokens(path: str):
     f = open(path)
@@ -10,7 +10,7 @@ def read_tokens(path: str):
 
     for token in tokens:
         lista = token.replace('\n', '').split(',')
-        list_tokens.append((lista[0], lista[1]))
+        list_tokens.append((lista[0], lista[1], lista[2], lista[3]))
 
     return list_tokens
 
@@ -23,7 +23,7 @@ class Parser:
         self.pos +=steps
 
     def backward(self, steps=1):
-        self.pos += steps
+        self.pos -= steps
 
 
     def parseID(self, tokens):
@@ -44,33 +44,43 @@ class Parser:
         self.forward()
         return {'type': 'formal', 'value': [self.parseID(tokens), self.forward(), ':', self.parseID(tokens)] }
 
+    def parseMethod(self, tokens, root):
+        return
 #funcao nao testada
-    def parseFeature(self,tokens):
+    def parseFeature(self,tokens, root):
         self.forward()
-        if tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 1][1] == ' PARENTESES_E':
+        if(tokens[self.pos][1] == ' CHAVES_E'):
+            print(tokens[self.pos][1])
+        """if tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 1][1] == ' PARENTESES_E':
             # while tokens[self.pos + 1] != ' PARENTESES_D':
             #     formal += self.parseFormal(tokens)
             return {'type': 'feature', 'value': [ self.parseID(tokens), '(', self.parseFormal(tokens), self.forward(), ')', self.forward(), ':',
             self.parseID(tokens), self.forward(), '{', self.parseExpr(), self.forward(), '}'] }
 
         elif tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 1][1] == ' DOIS_PONTOS':
-            pass
+            pass"""
 
-    def parseInherits(self,tokens):  
+    def parseInherits(self,tokens, root):  
         self.forward()
         if tokens[self.pos][1] != ' INHERITS':
             self.backward()
             pass
 
         else:
-            return {'type': 'inherits', 'value': [self.parseID(tokens)]}
+            AnyNode(id="INHERITS", parent = root, children = [
+                AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3])
+            ])
 
-    def parseClass(self,tokens):
-        return {'type': 'class', 'value': [self.parseID(tokens), self.parseInherits(tokens),  {'type': 'delimitador', 'value': ['{', self.parseFeature(tokens), '}']}]}
+    def parseClass(self,tokens, root):
+        n = AnyNode(id = 'CLASS', parent=root, children = [
+                AnyNode(id = self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3])])
+        self.parseInherits(tokens, n)
+        self.parseFeature(tokens, n)
+        #return {'type': 'class', 'value': [self.parseID(tokens), self.parseInherits(tokens),  {'type': 'delimitador', 'value': ['{', self.parseFeature(tokens), '}']}]}
 
-    def parseProgram(self,tokens):
-        if tokens[self.pos][1] == ' CLASS':
-            return self.parseClass(tokens)
+    def parseProgram(self,tokens, root):
+        if tokens[self.pos][1] == ' CLASS':            
+            return self.parseClass(tokens, root)
 
 
 
@@ -151,12 +161,19 @@ def parseFormal(tokens, pos):
 
 #trecho de teste
 
-hi = [('class ', ' CLASS'), ('CellularAutomaton', ' TYPE_IDENTIFIER'), ('inherits ', ' INHERITS'), ('IO', ' TYPE_IDENTIFIER'), 
-('{', ' CHAVES_E'), ('population_map', ' OBJECT_IDENTIFIER'), ('}', ' CHAVES_D')]
+hi = [('class ', ' CLASS', '1', '0'), ('CellularAutomaton', ' TYPE_IDENTIFIER', '1', '6'), 
+('inherits ', ' INHERITS', '1', '24'), ('IO', ' TYPE_IDENTIFIER', '1', '33'), 
+('{', ' CHAVES_E', '1', '36'), ('population_map', ' OBJECT_IDENTIFIER', '2', '1'), 
+(':', ' CHAVES_D', '2', '16')]
 
 p = Parser()
 
-result = p.parseProgram(hi)
+root = AnyNode(id="PROGRAM")
+
+result = p.parseProgram(hi, root)
+
+for pre, _, node in RenderTree(root):
+    print("%s%s" % (pre, node.id))
 
 print(result)
 

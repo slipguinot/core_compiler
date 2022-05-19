@@ -5,7 +5,7 @@ def read_file(filename: str):
     
     with open(filename, 'r') as f:
         prog = f.read()
-        prog = prog.replace('\t', '').replace('\n', ' ').replace('    ', ' ')
+        prog = prog.replace('\t', '').replace('    ', ' ')
         return prog
 
 
@@ -15,7 +15,7 @@ def save_file(path: str, content):
     text_file = open(path, "w")
     
     for tupla in content:
-        print(tupla)
+        #print('(' + tupla + ')')
         text_file.write(tupla + '\n')
         text_file.flush()
     
@@ -103,6 +103,7 @@ tokens = [
     'MAIOR',
     'ATRIBUICAO_CASE',
     'WHITESPACE',
+    'NOVALINHA',
     'ASPAS',
     'DOIS_PONTOS',
     'QUEISSO?' #algo inesperado
@@ -150,7 +151,8 @@ lexemes = [
     r'<=',
     r'>',
     r'=>',
-    r'[ \t\n\f\r\v]+', #WHITESPACE
+    r'[ \t\f\r\v]+', #WHITESPACE
+    r'\n',
     r'"',
     r':',
     r'.', #algo que não foi esperado
@@ -182,9 +184,12 @@ for m in re.finditer(tokenPattern, fullCode):
             token_type = 'TYPE_IDENTIFIER'
         else:
             token_type = 'OBJECT_IDENTIFIER'
-    
     if token_type == 'WHITESPACE':
         continue
+    elif token_type == 'NOVALINHA':
+        lin_start = m.end()
+        lin_num += 1
+
     elif token_type == 'QUEISSO':
         raise RuntimeError('%r unexpected on line %d' % (token_lexeme, lin_num))
     
@@ -195,6 +200,6 @@ for m in re.finditer(tokenPattern, fullCode):
         lexeme.append(token_lexeme)
         row.append(lin_num)
         #print('({0}, {1})'.format(token_type, token_lexeme))
-        list_tok.append('(' + token_lexeme + ', ' + token_type + ')')
+        list_tok.append(token_lexeme.replace('\n', '') + ', ' + token_type + ',' + str(lin_num) + ',' + str(col))
            
 save_file('result.txt', list_tok)
