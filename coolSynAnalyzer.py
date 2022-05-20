@@ -74,44 +74,18 @@ class Parser:
                 ])
 
     def parseExpr(self, tokens, root):  
-        self.forward()
-        if tokens[self.pos][1] == ' IF':
-            n = AnyNode(id="COND_IF", parent = root, children = [
-                    AnyNode(id=self.parseExpr(tokens, n), linha = tokens[self.pos][2], coluna = tokens[self.pos][3])
-                ])
-
-        elif tokens[self.pos][1] == ' THEN':
-            n = AnyNode(id="COND_THEN", parent = root, children = [
-                    AnyNode(id=self.parseExpr(tokens, n), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-
-        elif tokens[self.pos][1] == ' OBJECT_IDENTIFIER':
+        self.forward()        
+        if(tokens[self.pos][1] == ' OBJECT_IDENTIFIER'):
             self.backward()
-            n = AnyNode(id="ID_OBJ", parent = root, children = [
-                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-
-        elif tokens[self.pos][1] == ' TYPE_IDENTIFIER':
+            m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.forward()
+            if(tokens[self.pos][1] == ' ATRIBUICAO'):
+                p = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
+                self.parseExpr(tokens, root)
+        elif(tokens[self.pos][1] == ' SELF'):
             self.backward()
-            n = AnyNode(id="ID_TYPE", parent = root, children = [
-                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-
-        elif tokens[self.pos][1] == ' TRUE':
-            n = AnyNode(id="BOOL_TRUE", parent = root, children = [
-                    AnyNode(id=self.parseBool(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-
-        elif tokens[self.pos][1] == ' FALSE':
-            n = AnyNode(id="BOOL_FALSE", parent = root, children = [
-                    AnyNode(id=self.parseBool(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-        elif tokens[self.pos][1] == ' NEW':
-            n = AnyNode(id="DECL_new", parent = root, children = [
-                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
-                ])
-
-
+            r = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.forward()
 
     def parseFormal(self, tokens, root):
         if(tokens[self.pos][1] == ' OBJECT_IDENTIFIER'):
@@ -151,7 +125,10 @@ class Parser:
             self.forward()
             self.parseMethod(tokens, n)
             self.parseFeature(tokens, root)
-        if(tokens[self.pos][1] == ' PARENTESES_D'):
+
+        if(tokens[self.pos][1] == ' PARENTESES_D' or tokens[self.pos + 1][1] == ' PARENTESES_D'):
+            if(tokens[self.pos + 1][1] == ' PARENTESES_D'):
+                self.forward()
             p = AnyNode(id={'type': ')', 'value': tokens[self.pos][0]}, parent=root)
             self.forward()
             AnyNode(id = {'type': ':', 'value': tokens[self.pos][0]}, parent=root)
@@ -161,9 +138,29 @@ class Parser:
                 AnyNode(id = {'type': '{', 'value': tokens[self.pos][0]}, parent=root)
                 self.forward()
                 AnyNode(id = {'type': '{', 'value': tokens[self.pos][0]}, parent=root)
-                self.parseExpr(tokens, root)
+                while(tokens[self.pos][1] != ' CHAVES_D'):
+                    if(tokens[self.pos + 1][1] != ' CHAVES_D'):
+                        n = AnyNode(id = "expr", parent = root)
+                    self.parseExpr(tokens, n)
+                    if(tokens[self.pos][1] == ' P_VIRGULA'):
+                        q = AnyNode(id={'type': ';', 'value': tokens[self.pos][0]}, parent=n)
+                t = AnyNode(id={'type': '}', 'value': tokens[self.pos][0]}, parent=root)
+                self.forward()
+                t = AnyNode(id={'type': '}', 'value': tokens[self.pos][0]}, parent=root)
+                self.forward()
+                t = AnyNode(id={'type': ';', 'value': tokens[self.pos][0]}, parent=root)
             else:
-                self.parseExpr(tokens, root)
+                self.forward()
+                AnyNode(id = {'type': '{', 'value': tokens[self.pos][0]}, parent=root)
+                while(tokens[self.pos][1] != ' CHAVES_D'):
+                    if(tokens[self.pos + 1][1] != ' CHAVES_D'):
+                        n = AnyNode(id = "expr", parent = root)
+                    self.parseExpr(tokens, n)
+                    if(tokens[self.pos][1] == ' P_VIRGULA'):
+                        q = AnyNode(id={'type': ';', 'value': tokens[self.pos][0]}, parent=n)
+                t = AnyNode(id={'type': '}', 'value': tokens[self.pos][0]}, parent=root)
+                self.forward()
+                t = AnyNode(id={'type': ';', 'value': tokens[self.pos][0]}, parent=root)
         
                 
 
@@ -188,8 +185,10 @@ class Parser:
             m = AnyNode(id="FEATURE", parent=n)
             self.parseFeature(tokens, m)
         if(tokens[self.pos][1] == ' CHAVES_D'):
+            t = AnyNode(id={'type': '}', 'value': tokens[self.pos][0]}, parent=n)
             self.forward()
         if(tokens[self.pos][1] == ' P_VIRGULA'):  # acabou a feature
+            t = AnyNode(id={'type': ';', 'value': tokens[self.pos][0]}, parent=n)
             return "ok"
         # return {'type': 'class', 'value': [self.parseIDa(tokens), self.parseInherits(tokens),  {'type': 'delimitador', 'value': ['{', self.parseFeature(tokens), '}']}]}
 
@@ -208,7 +207,7 @@ p = Parser()
 root = AnyNode(id="PROGRAM")
 
 teste = read_tokens("result.txt")
-#print(teste)
+print(teste)
 
 result = p.parseProgram(teste, root)
 
@@ -218,6 +217,45 @@ for pre, _, node in RenderTree(root):
 print(result)
 
 
+"""if tokens[self.pos][1] == ' IF':
+            n = AnyNode(id="COND_IF", parent = root, children = [
+                    AnyNode(id=self.parseExpr(tokens, n), linha = tokens[self.pos][2], coluna = tokens[self.pos][3])
+                ])
+
+        elif tokens[self.pos][1] == ' THEN':
+            n = AnyNode(id="COND_THEN", parent = root, children = [
+                    AnyNode(id=self.parseExpr(tokens, n), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+
+        elif tokens[self.pos][1] == ' OBJECT_IDENTIFIER':
+            self.backward()
+            n = AnyNode(id="ID_OBJ", parent = root, children = [
+                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+            self.parseExpr(tokens, n)
+
+        elif tokens[self.pos][1] == ' TYPE_IDENTIFIER':
+            self.backward()
+            n = AnyNode(id="ID_TYPE", parent = root, children = [
+                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+
+        elif tokens[self.pos][1] == ' TRUE':
+            n = AnyNode(id="BOOL_TRUE", parent = root, children = [
+                    AnyNode(id=self.parseBool(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+
+        elif tokens[self.pos][1] == ' FALSE':
+            n = AnyNode(id="BOOL_FALSE", parent = root, children = [
+                    AnyNode(id=self.parseBool(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+        elif tokens[self.pos][1] == ' NEW':
+            n = AnyNode(id="DECL_new", parent = root, children = [
+                    AnyNode(id=self.parseID(tokens), linha = tokens[self.pos][2], coluna = tokens[self.pos][3]),
+                ])
+        elif tokens[self.pos][1] == ' ATRIBUICAO':
+             n = AnyNode(id="ATRIBUICAO", parent = root)
+             self.parseExpr(tokens, root)"""
 
 
 """if tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 1][1] == ' PARENTESES_E':
