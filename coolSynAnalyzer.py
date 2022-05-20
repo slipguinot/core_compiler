@@ -38,6 +38,18 @@ class Parser:
             return {'type': 'SELF_TYPE', 'value': tokens[self.pos][0]}
         if tokens[self.pos][1] == ' SELF':
             return {'type': 'SELF', 'value': tokens[self.pos][0]}
+        if tokens[self.pos][1] == ' STRING':
+            return {'type': 'STRING', 'value': tokens[self.pos][0]}
+        if tokens[self.pos][1] == ' INTEIRO':
+            return {'type': 'INT', 'value': tokens[self.pos][0]}
+        if tokens[self.pos][1] == ' TRUE':
+            return {'type': 'TRUE', 'value': tokens[self.pos][0]}
+        if tokens[self.pos][1] == ' FALSE':
+            return {'type': 'FALSE', 'value': tokens[self.pos][0]}
+        if tokens[self.pos][1] == ' PARENTESES_E':
+            return {'type': '(', 'value': tokens[self.pos][0]}
+        if(tokens[self.pos][2] == ' VIRGULA'):
+            return {'type': 'VIRGULA', 'value': r','}
 
     def parseBool(self, tokens):
         self.forward()
@@ -73,19 +85,150 @@ class Parser:
                     AnyNode(id=self.parseExpr(tokens, n), linha = tokens[self.pos][2], coluna = tokens[self.pos][3])
                 ])
 
+    def parseArguments(self, tokens, root):
+        if(tokens[self.pos][1] == ' PARENTESES_E' and tokens[self.pos + 1][1] == ' PARENTESES_D'):
+            p = AnyNode(id={'type': '(', 'value': tokens[self.pos][0]}, parent=root)
+            self.forward()
+            p = AnyNode(id={'type': ')', 'value': tokens[self.pos][0]}, parent=root)            
+        elif(tokens[self.pos][1] == ' PARENTESES_E' and tokens[self.pos + 1][1] == ' STRING'):
+            p = AnyNode(id={'type': '(', 'value': tokens[self.pos][0]}, parent=root)
+            m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.forward()
+        elif(tokens[self.pos][1] == ' PARENTESES_E' and tokens[self.pos + 1][1] != ' PARENTESES_D'):
+            p = AnyNode(id={'type': '(', 'value': tokens[self.pos][0]}, parent=root)
+            while(tokens[self.pos + 1][1] != ' PARENTESES_D'):               
+                m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+
     def parseExpr(self, tokens, root):  
-        self.forward()        
-        if(tokens[self.pos][1] == ' OBJECT_IDENTIFIER'):
+        self.forward()
+        if(tokens[self.pos - 1][1] == ' PARENTESES_E' and tokens[self.pos][1] == ' PARENTESES_D'):
+            self.backward()
+            self.parseArguments(tokens, root)           
+        elif(tokens[self.pos - 1][1] == ' PARENTESES_E' and tokens[self.pos][1] == ' STRING'):
+            self.backward()
+            self.parseArguments(tokens, root)
+        elif(tokens[self.pos - 1][1] == ' PARENTESES_E' and tokens[self.pos + 1][1] != ' PARENTESES_D'):
+            self.backward()
+            self.parseArguments(tokens, root)
+        elif(tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and (tokens[self.pos + 1][1] == ' PARENTESES_E' or tokens[self.pos + 1][1] == ' OBJECT_IDENTIFIER')):
             self.backward()
             m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
             self.forward()
+            if(tokens[self.pos][1] == ' PARENTESES_E'):
+                self.parseArguments(tokens, root)
+            else:
+                self.backward()
+                m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+                self.forward()
+            self.parseExpr(tokens, root)
+        elif(tokens[self.pos][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 1][1] != ' OBJECT_IDENTIFIER'):
+            self.backward()
+            m = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.forward()            
             if(tokens[self.pos][1] == ' ATRIBUICAO'):
                 p = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
                 self.parseExpr(tokens, root)
+            
+            elif(tokens[self.pos][1] == ' MAIS'):
+                p = AnyNode(id={'type': 'SOMA', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' HIFEN'):
+                p = AnyNode(id={'type': 'SUB', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' ASTERISCO'):
+                p = AnyNode(id={'type': 'MUL', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' BARRA'):
+                p = AnyNode(id={'type': 'DIV', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' IGUAL'):
+                p = AnyNode(id={'type': 'COMP_IGUAL', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' MENOR'):
+                p = AnyNode(id={'type': 'COMP_MENOR', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' MENOR_IGUAL'):
+                p = AnyNode(id={'type': 'COMP_MENORIGUAL', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
         elif(tokens[self.pos][1] == ' SELF'):
             self.backward()
             r = AnyNode(id=self.parseID(tokens), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
             self.forward()
+        elif(tokens[self.pos][1] == ' HIFEN'):
+            p = AnyNode(id={'type': 'SUB', 'value': tokens[self.pos][0]}, parent=root)
+            self.parseExpr(tokens,root)
+        elif tokens[self.pos][1] == ' INTEIRO':
+            AnyNode(id={'type': 'NUMERO', 'value': tokens[self.pos][0]}, parent=root)
+        
+            self.forward()
+            if tokens[self.pos][1] == ' MAIS':
+                AnyNode(id={'type': 'SOM', 'value': '+'}, parent=root)
+                self.parseExpr(tokens, root)
+
+            elif tokens[self.pos][1] == ' HIFEN':
+                AnyNode(id={'type': 'SUB', 'value': '-'}, parent=root)
+                self.parseExpr(tokens, root)
+
+            elif tokens[self.pos][1] == ' ASTERISCO':
+                AnyNode(id={'type': 'MUL', 'value': '*'}, parent=root)
+                self.parseExpr(tokens, root)
+
+            elif tokens[self.pos][1] == ' BARRA':
+                AnyNode(id={'type': 'DIV', 'value': '/'}, parent=root)
+                self.parseExpr(tokens, root)
+
+            elif(tokens[self.pos][1] == ' IGUAL'):
+                p = AnyNode(id={'type': 'COMP_IGUAL', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' MENOR'):
+                p = AnyNode(id={'type': 'COMP_MENOR', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+
+            elif(tokens[self.pos][1] == ' MENOR_IGUAL'):
+                p = AnyNode(id={'type': 'COMP_MENORIGUAL', 'value': tokens[self.pos][0]}, parent=m)
+                self.parseExpr(tokens,root)
+            
+            self.parseExpr(tokens,root)
+
+
+        elif tokens[self.pos][1] == ' TRUE':
+            self.backward()
+            AnyNode(id=self.parseBool(tokens, root), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+
+        elif tokens[self.pos][1] == ' FALSE':
+            self.backward()
+            AnyNode(id=self.parseBool(tokens, root), parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+
+        elif tokens[self.pos][1] == ' STRING':
+            AnyNode(id={'type': 'STRING', 'value': tokens[self.pos][0]}, parent=root)
+
+        elif tokens[self.pos][1] == ' IF':
+            n = AnyNode(id={'type': 'CONDICIONAL_IF', 'value': tokens[self.pos][0]}, parent=root)#linha=tokens[self.pos][2], coluna=tokens[self.pos][3]
+            self.parseExpr(tokens, n)
+        elif tokens[self.pos][1] == ' THEN':
+            q = AnyNode(id='CONDICIONAL_THEN',  parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.parseExpr(tokens, q)
+
+        elif tokens[self.pos][1] == ' ELSE':
+            s = AnyNode(id='CONDICIONAL_ELSE', parent=root, linha=tokens[self.pos][2], coluna=tokens[self.pos][3])
+            self.parseExpr(tokens, s)
+
+        elif tokens[self.pos][1] == ' FI':
+            pass
+
+        if(tokens[self.pos][1] == ' PARENTESES_D' and tokens[self.pos + 1][1] == ' PARENTESES_D'):
+            p = AnyNode(id={'type': ')', 'value': tokens[self.pos][0]}, parent=root)    
+            self.forward()
+            p = AnyNode(id={'type': ')', 'value': tokens[self.pos][0]}, parent=root)   
+            self.forward()
+
 
     def parseFormal(self, tokens, root):
         if(tokens[self.pos][1] == ' OBJECT_IDENTIFIER'):
@@ -123,7 +266,7 @@ class Parser:
         while(tokens[self.pos + 1][1] == ' OBJECT_IDENTIFIER' and tokens[self.pos + 2][1] == ' PARENTESES_E'):
             n = AnyNode(id="METHOD", parent = root)
             self.forward()
-            self.parseMethod(tokens, n)
+            self.parseMethod(tokens, root)
             self.parseFeature(tokens, root)
 
         if(tokens[self.pos][1] == ' PARENTESES_D' or tokens[self.pos + 1][1] == ' PARENTESES_D'):
@@ -207,7 +350,7 @@ p = Parser()
 root = AnyNode(id="PROGRAM")
 
 teste = read_tokens("result.txt")
-print(teste)
+#print(teste)
 
 result = p.parseProgram(teste, root)
 
