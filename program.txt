@@ -1,5 +1,9 @@
 class Main inherits IO {
     main() : Object {
         out_string("Hello world.\n")
+        x + 2 - 3;
+        x * 2;
+        x / 2;
+        x - 2;
     };
 };

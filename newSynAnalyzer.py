@@ -57,6 +57,20 @@ class Parser:
             ])
         return inherits
 
+    def lookAheadUntilPosition(self, tokens, lookingFor):
+        rollback = self.pos
+        limite = -1
+        while(self.pos < len(tokens)):
+            if(tokens[self.pos][1] == lookingFor or tokens[self.pos + 1][1] == ' P_VIRGULA'):
+                limite = self.pos
+                self.pos = rollback
+                return limite
+            else:
+                self.forward()
+
+        self.pos = rollback
+        return limite
+
     def parseFormals(self, tokens, root):
         if(tokens[self.pos][1] != ' OBJECT_IDENTIFIER' or tokens[self.pos + 1][1] != ' DOIS_PONTOS' or tokens[self.pos + 2][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Feature mal formada, o padrão é: ID : Tipo;", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
@@ -112,12 +126,17 @@ class Parser:
                 self.forward()
                 return "ok"
             #só ID mesmo
-            else: 
+            elif(tokens[self.pos + 1][1] == ' P_VIRGULA'): 
                 objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
                 self.forward()
                 pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 return "ok"
+            else:
+                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                self.forward()
+                self.parseExpr(tokens, root)
+                self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' IF'):
             ifstart = AnyNode(id= 'IF', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
@@ -164,21 +183,61 @@ class Parser:
         elif(tokens[self.pos][1] == ' CASE'):
             return "expr começa com CASE"
         elif(tokens[self.pos][1] == ' NEW'):
-            return "expr começa com NEW"
+            parentesesE = AnyNode(id={'type': 'NEW', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+            self.forward()
         elif(tokens[self.pos][1] == ' ISVOID'):
-            return "expr começa com isvoid"
+            isvoid = AnyNode(id={'type': 'ISVOID', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            self.forward()
         elif(tokens[self.pos][1] == ' NOT'):
-            return "expr começa com NOT"
-        elif(tokens[self.pos][1] == ' INTEGER'):
-            return "é só um inteiro mesmo"
+            isnot = AnyNode(id={'type': 'NOT', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            self.forward()
+        elif(tokens[self.pos][1] == ' INTEIRO'):
+            string = AnyNode(id={'type': 'INTEGER', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            if(tokens[self.pos][1] != ' P_VIRGULA'):
+                self.parseExpr(tokens, root)
+            return "ok"
         elif(tokens[self.pos][1] == ' STRING'):
             string = AnyNode(id={'type': 'STRING', 'value': tokens[self.pos][0]}, parent = root)
             return "ok"
         elif(tokens[self.pos][1] == ' TRUE'):
-            return "expr começa com isvoid"
+            string = AnyNode(id={'type': 'TRUE', 'value': tokens[self.pos][0]}, parent = root)
+            return "ok"
         elif(tokens[self.pos][1] == ' FALSE'):
-            return "expr começa com isvoid"
+            string = AnyNode(id={'type': 'FALSE', 'value': tokens[self.pos][0]}, parent = root)
+            return "ok"
         #tirando isso sobra as operações binárias, são os casos de recursão a esquerda
+        elif(tokens[self.pos][1] == ' MAIS'):
+            string = AnyNode(id={'type': 'SOMA', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
+        elif(tokens[self.pos][1] == ' HIFEN'):
+            string = AnyNode(id={'type': 'SUBTRACAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
+        elif(tokens[self.pos][1] == ' BARRA'):
+            string = AnyNode(id={'type': 'DIVISAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
+        elif(tokens[self.pos][1] == ' ASTERISCO'):
+            string = AnyNode(id={'type': 'MULTIPLICACAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
+        elif(tokens[self.pos][1] == ' IGUAL'):
+            string = AnyNode(id={'type': 'IGUALDADE', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
         return "ok"
 
     def parseFeatureMethod(self, tokens, methodParent):        
