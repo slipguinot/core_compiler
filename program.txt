@@ -1,50 +1,5 @@
-class CellularAutomaton inherits IO {
-    population_map : String;
-   
-    init(map : String) : SELF_TYPE {
-        {
-            population_map <- map; (*mapeamento da população*)
-            self;
-        }
-    };
-   
-    print() : SELF_TYPE {
-        {
-            out_string(population_map.concat("\n")); (*concatenando*)
-            self;
-        }
-    };
-   
-    num_cells() : Int {
-        population_map.length()
-    };
-   
-    cell(position : Int) : String {
-        population_map.substr(position, 1)
-    };
-   
-    cell_left_neighbor(position : Int) : String {
-        teste <- 1 + 1;
-    };
-};
-
-class Main {
-    cells : CellularAutomaton;
-   
-    main() : SELF_TYPE {
-        {
-            cells <- (new CellularAutomaton).init("         X         ");
-            cells.print();
-            (let countdown : Int <- 20 in
-                while 0 < countdown loop
-                    {
-                        cells.evolve();
-                        cells.print();
-                        countdown <- countdown - 1;
-                    }
-                pool
-            );
-            self;
-        }
+class Main inherits IO {
+    main() : Object {
+        out_string("Hello world.\n")
     };
 };

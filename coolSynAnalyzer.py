@@ -326,22 +326,21 @@ class Parser:
 
 # trecho de teste
 
-hi = [('class ', ' CLASS', '1', '0'), ('CellularAutomaton', ' TYPE_IDENTIFIER', '1', '6'), ('inherits ', ' INHERITS', '1', '24'), ('IO', ' TYPE_IDENTIFIER', '1', '33'), ('{', ' CHAVES_E', '1', '36'), ('population_map', ' OBJECT_IDENTIFIER', '2', '1'), (':', ' DOIS_PONTOS', '2', '16'), ('String', ' TYPE_IDENTIFIER', '2', '18'), (';', ' P_VIRGULA', '2', '24'), ('init', ' OBJECT_IDENTIFIER', '4', '1'), ('(', ' PARENTESES_E', '4', '5'), ('map', ' OBJECT_IDENTIFIER', '4', '6'), (':', ' DOIS_PONTOS', '4', '10'), ('String', ' TYPE_IDENTIFIER', '4', '12'),  (',', ' VIRGULA', '4', '6') ,('map', ' OBJECT_IDENTIFIER', '4', '6'), (':', ' DOIS_PONTOS', '4', '10'), ('String', ' TYPE_IDENTIFIER', '4', '12'), (')', ' PARENTESES_D', '4', '18'), (':', ' DOIS_PONTOS', '4', '20'), ('SELF_TYPE', ' SELF_TYPE', '4', '22'), ('{', ' CHAVES_E', '4', '32'), ('{', ' CHAVES_E', '5', '2')
-]
+#hi = [('class ', ' CLASS', '1', '0'), ('CellularAutomaton', ' TYPE_IDENTIFIER', '1', '6'), ('inherits ', ' INHERITS', '1', '24'), ('IO', ' TYPE_IDENTIFIER', '1', '33'), ('{', ' CHAVES_E', '1', '36'), ('population_map', ' OBJECT_IDENTIFIER', '2', '1'), (':', ' DOIS_PONTOS', '2', '16'), ('String', ' TYPE_IDENTIFIER', '2', '18'), (';', ' P_VIRGULA', '2', '24'), ('init', ' OBJECT_IDENTIFIER', '4', '1'), ('(', ' PARENTESES_E', '4', '5'), ('map', ' OBJECT_IDENTIFIER', '4', '6'), (':', ' DOIS_PONTOS', '4', '10'), ('String', ' TYPE_IDENTIFIER', '4', '12'),  (',', ' VIRGULA', '4', '6') ,('map', ' OBJECT_IDENTIFIER', '4', '6'), (':', ' DOIS_PONTOS', '4', '10'), ('String', ' TYPE_IDENTIFIER', '4', '12'), (')', ' PARENTESES_D', '4', '18'), (':', ' DOIS_PONTOS', '4', '20'), ('SELF_TYPE', ' SELF_TYPE', '4', '22'), ('{', ' CHAVES_E', '4', '32'), ('{', ' CHAVES_E', '5', '2')]
 
-p = Parser()
+#p = Parser()
 
-root = AnyNode(id="PROGRAM")
+#root = AnyNode(id="PROGRAM")
 
-teste = read_tokens("result.txt")
-print(teste)
+#teste = read_tokens("result.txt")
+#print(teste)
 
-result = p.parseProgram(teste, root)
+#result = p.parseProgram(teste, root)
 
-for pre, _, node in RenderTree(root):
-    print("%s%s" % (pre, node.id))
+"""for pre, _, node in RenderTree(root):
+    print("%s%s" % (pre, node.id))"""
 
-print(result)
+#print(result)
 
 
 """if tokens[self.pos][1] == ' IF':
