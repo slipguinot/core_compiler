@@ -99,7 +99,6 @@ class Parser:
                 parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()            
                 self.parseExpr(tokens,root)
-                self.forward()
                 parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 return "ok"
@@ -110,7 +109,6 @@ class Parser:
                 parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 self.parseExpr(tokens, root)
-                self.forward()
                 parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 return "ok"
@@ -121,7 +119,6 @@ class Parser:
                 atribuicao = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 self.parseExpr(tokens, root)
-                self.forward()
                 pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 return "ok"
@@ -136,18 +133,17 @@ class Parser:
                 objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
                 self.forward()
                 self.parseExpr(tokens, root)
-                self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' IF'):
             ifstart = AnyNode(id= 'IF', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             thenStart = AnyNode(id= 'THEN', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
-            self.parseExpr(tokens, root)
             self.forward()
+            self.parseExpr(tokens, root)
             elseStart = AnyNode(id= 'ELSE', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
-            self.parseExpr(tokens, root)
             self.forward()
+            self.parseExpr(tokens, root)
             fiStart = AnyNode(id= 'FI', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
             return "ok"
@@ -156,8 +152,8 @@ class Parser:
             self.forward()
             self.parseExpr(tokens, root)
             loopStart = AnyNode(id= 'LOOP', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
-            self.parseExpr(tokens, root)
             self.forward()
+            self.parseExpr(tokens, root)
             pool = AnyNode(id= 'POOL', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
             return "ok"
@@ -166,7 +162,6 @@ class Parser:
             chavesE = AnyNode(id={'type': 'CHAVES_E', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
-            self.forward()
             chavesD = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             return "ok"
@@ -174,14 +169,75 @@ class Parser:
             parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
-            self.forward()
             parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' LET'):
-            return "expr começa com LET"
+            letstart = AnyNode(id= 'LET', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+            self.forward()
+            while(True):
+                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                self.forward()
+                doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
+                self.forward()
+                typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                self.forward()
+                if(tokens[self.pos][1] == ' ATRIBUICAO'):
+                    attr = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
+                    self.forward()
+                    self.parseExpr(tokens, root)
+                if(tokens[self.pos][2] == ' VIRGULA'):
+                    virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+                    self.forward()
+                else:
+                    break
+            instart = AnyNode(id= 'IN', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+            self.forward()
+            chavesE = AnyNode(id= 'Chaves_E', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+            self.forward()
+            while(True):
+                self.parseExpr(tokens, root)
+                if(tokens[self.pos][1] == ' P_VIRGULA'):
+                    chavesD = AnyNode(id= 'P_VIRGULA', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+                    self.forward()
+                if(tokens[self.pos][1] == ' CHAVES_D'):
+                    chavesD = AnyNode(id= 'Chaves_D', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+                    self.forward()
+                    break
+            return "ok"
         elif(tokens[self.pos][1] == ' CASE'):
-            return "expr começa com CASE"
+            case = AnyNode(id= 'CASE', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            off = AnyNode(id= 'OF', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+            self.forward()
+            objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+            self.forward()
+            doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+            self.forward()
+            atribuicaoCase = AnyNode(id={'type': 'ATRIBUICAO_CASE', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            while(True):
+                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                self.forward()
+                doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
+                self.forward()
+                typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                self.forward()
+                atribuicaoCase = AnyNode(id={'type': 'ATRIBUICAO_CASE', 'value': tokens[self.pos][0]}, parent = root)
+                self.forward()
+                self.parseExpr(tokens, root)
+                if(tokens[self.pos][1] == ' P_VIRGULA'):
+                    chavesD = AnyNode(id= 'P_VIRGULA', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+                    self.forward()
+                if(tokens[self.pos][1] == ' ESAC'):
+                    esac = AnyNode(id= 'ESAC', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
+                    self.forward()
+                    break
+            return "ok"
         elif(tokens[self.pos][1] == ' NEW'):
             parentesesE = AnyNode(id={'type': 'NEW', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
@@ -191,12 +247,10 @@ class Parser:
             isvoid = AnyNode(id={'type': 'ISVOID', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
-            self.forward()
         elif(tokens[self.pos][1] == ' NOT'):
             isnot = AnyNode(id={'type': 'NOT', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
-            self.forward()
         elif(tokens[self.pos][1] == ' INTEIRO'):
             string = AnyNode(id={'type': 'INTEGER', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
@@ -205,12 +259,15 @@ class Parser:
             return "ok"
         elif(tokens[self.pos][1] == ' STRING'):
             string = AnyNode(id={'type': 'STRING', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' TRUE'):
             string = AnyNode(id={'type': 'TRUE', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' FALSE'):
             string = AnyNode(id={'type': 'FALSE', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
             return "ok"
         #tirando isso sobra as operações binárias, são os casos de recursão a esquerda
         elif(tokens[self.pos][1] == ' MAIS'):
@@ -269,14 +326,18 @@ class Parser:
         chaves = AnyNode(id={'type': 'CHAVES_E', 'value': tokens[self.pos][0]}, parent = methodParent)
         self.forward()
         while(self.lookAheadUntilClosing(tokens, " CHAVES_D") != False):
-            expressionParent = AnyNode(id = 'EXPRESSION', parent = methodParent)
-            self.parseExpr(tokens, expressionParent)
             if(tokens[self.pos][1] == ' CHAVES_D' and tokens[self.pos+1][1] == ' P_VIRGULA'):
                 chaves = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = methodParent)
                 self.forward()
                 pVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = methodParent)
                 self.forward()
                 break
+            elif(tokens[self.pos][1] == ' P_VIRGULA'):
+                pVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = methodParent)
+                self.forward()
+            else:
+                expressionParent = AnyNode(id = 'EXPRESSION', parent = methodParent)
+                self.parseExpr(tokens, expressionParent)
 
         return methodParent
 
@@ -350,8 +411,15 @@ class Parser:
         return("ok")
 
     def parseProgram(self, tokens, root):
-       if tokens[self.pos][1] == ' CLASS':
-            return self.parseClass(tokens, root)
+        while(tokens[self.pos][1] == ' CLASS'):
+            self.parseClass(tokens, root)
+            chaves = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            pVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            if(self.pos >= len(tokens)):
+                self.pos -= 1
+        return "ok"
 
 
 
