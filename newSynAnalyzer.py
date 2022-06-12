@@ -1,7 +1,8 @@
 from asyncio.windows_events import NULL
+from logging import exception
 import coolLexAnalyzer as lex
 from anytree import AnyNode, RenderTree
-
+from coolSemantics import symbolTable, Attr, registro, method, lookForClass, addNewClass
 def read_tokens(path: str):
     f = open(path)
     tokens = f.readlines()
@@ -37,6 +38,18 @@ class Parser:
 
         self.pos = rollback
         return False
+    
+    def lookAhead(self, tokens, lookingFor):
+        rollback = self.pos
+        while(self.pos < len(tokens)):
+            if(tokens[self.pos][1] == lookingFor):
+                self.pos = rollback
+                return True
+            else:
+                self.forward()
+
+        self.pos = rollback
+        return False
 
     def parseID(self, tokens):
         if tokens[self.pos][1] == ' TYPE_IDENTIFIER':
@@ -55,7 +68,16 @@ class Parser:
         inherits = AnyNode(id="INHERITS", linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children=[
                 self.parseID(tokens)
             ])
-        return inherits
+        if(lookForClass(tokens[self.pos][0]) == True):
+            self.forward()
+            return inherits
+        else:
+            #erro classe non ecziste
+            r = AnyNode(id = f"Erro semantico, classe {tokens[self.pos][0]} não existe. Linha {tokens[self.pos][2]} e coluna {tokens[self.pos][3]}.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
+            print(f"Erro semantico, classe {tokens[self.pos][0]} não existe. Linha {r.linha} e coluna {r.coluna}.")
+            raise Exception(f"Erro semantico, classe {tokens[self.pos][0]} não existe. Linha {r.linha} e coluna {r.coluna}.")
+            
+            
 
     def lookAheadUntilPosition(self, tokens, lookingFor):
         rollback = self.pos
@@ -74,14 +96,16 @@ class Parser:
     def parseFormals(self, tokens, root):
         if(tokens[self.pos][1] != ' OBJECT_IDENTIFIER' or tokens[self.pos + 1][1] != ' DOIS_PONTOS' or tokens[self.pos + 2][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Feature mal formada, o padrão é: ID : Tipo;", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, Feature mal formada, o padrão é: [ID : Tipo;] Rever linha {node.linha} e coluna {node.coluna}."
+            raise Exception("Erro, Feature mal formada, o padrão é: [ID : Tipo;] Rever linha {node.linha} e coluna {node.coluna}.")
         objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
         self.forward()
         doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
         self.forward()
         typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+        if(lookForClass(tokens[self.pos][0]) != True):
+            raise Exception(f"Classe {tokens[self.pos]} não existe.")
         self.forward()
-        if(tokens[self.pos][1] == ' VIRGULA'):
+        if(tokens[self.pos][2] == ' VIRGULA'):
             virg = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
         elif(tokens[self.pos][1] == ' PARENTESES_D'):
@@ -119,8 +143,9 @@ class Parser:
                 atribuicao = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 self.parseExpr(tokens, root)
-                pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
-                self.forward()
+                if(tokens[self.pos][1] == ' P_VIRGULA'):
+                    pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+                    self.forward()
                 return "ok"
             #só ID mesmo
             elif(tokens[self.pos + 1][1] == ' P_VIRGULA'): 
@@ -162,8 +187,6 @@ class Parser:
             chavesE = AnyNode(id={'type': 'CHAVES_E', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
-            chavesD = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = root)
-            self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' PARENTESES_E'):
             parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
@@ -181,6 +204,9 @@ class Parser:
                 doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                if(lookForClass(tokens[self.pos][0]) != True):
+                    raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                    
                 self.forward()
                 if(tokens[self.pos][1] == ' ATRIBUICAO'):
                     attr = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
@@ -216,6 +242,9 @@ class Parser:
             doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+            if(lookForClass(tokens[self.pos][0]) != True):
+                raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                
             self.forward()
             atribuicaoCase = AnyNode(id={'type': 'ATRIBUICAO_CASE', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
@@ -226,6 +255,9 @@ class Parser:
                 doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
                 typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                if(lookForClass(tokens[self.pos][0]) != True):
+                    raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                    
                 self.forward()
                 atribuicaoCase = AnyNode(id={'type': 'ATRIBUICAO_CASE', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
@@ -242,6 +274,9 @@ class Parser:
             parentesesE = AnyNode(id={'type': 'NEW', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+            if(lookForClass(tokens[self.pos][0]) != True):
+                raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                
             self.forward()
         elif(tokens[self.pos][1] == ' ISVOID'):
             isvoid = AnyNode(id={'type': 'ISVOID', 'value': tokens[self.pos][0]}, parent = root)
@@ -304,25 +339,31 @@ class Parser:
         self.forward()
         if(tokens[self.pos][1] == ' PARENTESES_D'):
             par = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = methodParent)
+            self.forward()
         else:
             while(tokens[self.pos][1] != ' PARENTESES_D'):
                 retorno = self.parseFormals(tokens, methodParent)
                 if(retorno != "ok"):
                     break
-        self.forward()
+            par = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = methodParent)
+            self.forward()
+
         if(tokens[self.pos][1] != ' DOIS_PONTOS'):
             node = AnyNode(id = "Faltando dois pontos(:).", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, faltando dois pontos(:) linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, faltando dois pontos(:) linha {node.linha} e coluna {node.coluna}.")
         doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = methodParent)
         self.forward()
         if(tokens[self.pos][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Faltando TYPE_IDENTIFIER.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, faltando TYPE_IDENTIFIER na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, faltando TYPE_IDENTIFIER na linha {node.linha} e coluna {node.coluna}.")
         typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
+        if(lookForClass(tokens[self.pos][0]) != True):
+                raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                
         self.forward()
         if(tokens[self.pos][1] != ' CHAVES_E'):
             node = AnyNode(id = "Faltando CHAVES_E.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, faltando CHAVES_E na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, faltando CHAVES_E na linha {node.linha} e coluna {node.coluna}.")
         chaves = AnyNode(id={'type': 'CHAVES_E', 'value': tokens[self.pos][0]}, parent = methodParent)
         self.forward()
         while(self.lookAheadUntilClosing(tokens, " CHAVES_D") != False):
@@ -335,6 +376,9 @@ class Parser:
             elif(tokens[self.pos][1] == ' P_VIRGULA'):
                 pVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = methodParent)
                 self.forward()
+            elif(tokens[self.pos][1] == ' CHAVES_D'):
+                chaves = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = methodParent)
+                self.forward()
             else:
                 expressionParent = AnyNode(id = 'EXPRESSION', parent = methodParent)
                 self.parseExpr(tokens, expressionParent)
@@ -342,24 +386,18 @@ class Parser:
         return methodParent
 
     def parseFeature(self, tokens, root):
-        self.forward()
         if(tokens[self.pos][1] != ' OBJECT_IDENTIFIER'):
             node = AnyNode(id = "Erro, não foi encontrado tipo identificador da feature.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, não foi encontrado tipo identificador da feature na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, não foi encontrado tipo identificador da feature na linha {node.linha} e coluna {node.coluna}.")
         elif(tokens[self.pos + 1][1] != ' PARENTESES_E' and tokens[self.pos + 1][1] != ' DOIS_PONTOS'):
             node = AnyNode(id = "Erro, não foi encontrado parenteses ou dois pontos.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, não foi encontrado parenteses ou dois pontos na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, não foi encontrado parenteses ou dois pontos na linha {node.linha} e coluna {node.coluna}.")
         
         if(tokens[self.pos + 1][1] != ' DOIS_PONTOS'):
             methodParent = AnyNode(id = 'METHOD')
             retorno = self.parseFeatureMethod(tokens, methodParent)
             featureParent = AnyNode(id = 'FEATURE', children = [methodParent], parent = root)
-            if(retorno != "ok"):
-                return "erro"
-            chaves = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = methodParent)
-            self.forward()
-            pVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = methodParent)
-            self.forward()
+            return "fimMetodo"
         else:
             objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
             self.forward()
@@ -367,14 +405,18 @@ class Parser:
             self.forward()
             if(tokens[self.pos][1] != ' TYPE_IDENTIFIER' and tokens[self.pos + 1][1] != ' P_VIRGULA'):
                 node = AnyNode(id = "Erro, não foi encontrado tipo identificador da feature e/ou ponto virgula.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-                return f"Erro, não foi encontrado tipo identificador da feature e/ou ponto virgula na linha {node.linha} e coluna {node.coluna}."
+                raise Exception(f"Erro, não foi encontrado tipo identificador da feature e/ou ponto virgula na linha {node.linha} e coluna {node.coluna}.")
 
             typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
+            if(lookForClass(tokens[self.pos][0]) != True):
+                raise Exception(f"Classe {tokens[self.pos]} não existe.")
+                
             self.forward()
             if(tokens[self.pos][1] != ' P_VIRGULA'):
                 node = AnyNode(id = "Erro, faltou ;.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-                return f"Erro, faltou ; na linha {node.linha} e coluna {node.coluna}."
+                raise Exception(f"Erro, faltou ; na linha {node.linha} e coluna {node.coluna}.")
             pontoVirg = AnyNode(id={'type': 'PONTO_VIRGULA', 'value': tokens[self.pos][0]})
+            self.forward()
             featureParent = AnyNode(id = 'FEATURE', children = [objectIdentifier, doisPontos, typeIdentifier, pontoVirg], parent = root)
         return "ok"
 
@@ -382,17 +424,23 @@ class Parser:
         self.forward()
         if(tokens[self.pos][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Erro, não foi encontrado tipo identificador de classe.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, não foi encontrado tipo identificador de classe na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, não foi encontrado tipo identificador de classe na linha {node.linha} e coluna {node.coluna}.")
         elif(tokens[self.pos + 1][1] != ' INHERITS' and tokens[self.pos + 1][1] != ' CHAVES_E'):
             node = AnyNode(id = "Erro, não foi encontrado INHERITS ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-            return f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}."
+            raise Exception(f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}.")
        
         typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
+        if(lookForClass(tokens[self.pos][0]) == True):
+            #erro semantico, classe já foi declarada antes
+            raise Exception(f"Erro semantico, classe {tokens[self.pos][0]} não pode ser reDeclarada. Linha {node.linha} e coluna {node.coluna}.")
+            
+        else:
+            addNewClass(tokens[self.pos][0])
         self.forward()
         if(tokens[self.pos][1] == ' INHERITS'):
             if(tokens[self.pos + 1][1] != ' TYPE_IDENTIFIER' and tokens[self.pos + 2][1] != ' CHAVES_E'):           
                 node = AnyNode(id = "Erro, não foi encontrado tipo de herança ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-                return f"Erro, não foi encontrado tipo de herança ou abertura de bloco de código na linha {node.linha} e {node.coluna}."
+                raise Exception(f"Erro, não foi encontrado tipo de herança ou abertura de bloco de código na linha {node.linha} e {node.coluna}.")
             inherits = self.parseInherits(tokens)
             self.forward()
             chavesE = AnyNode(id={'type': 'CHAVES_ESQUERDA', 'value': tokens[self.pos][0]})
@@ -400,14 +448,12 @@ class Parser:
         else:
             if(tokens[self.pos + 1][1] != ' CHAVES_E'):
                 node = AnyNode(id = "Erro, não foi encontrado INHERITS ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-                return f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}."
+                raise Exception (f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}.")
             chavesE = AnyNode(id={'type': 'CHAVES_ESQUERDA', 'value': tokens[self.pos][0]})
             classParent = AnyNode(id = 'CLASS', children = [typeIdentifier, chavesE], parent = root)
         
-        while(self.lookAheadUntilClosing(tokens, " DOIS_PONTOS") != False):
-            retorno = self.parseFeature(tokens, classParent)
-            if(retorno != "ok"):
-                break
+        while(self.lookAhead(tokens, " DOIS_PONTOS") != False):
+            retorno = self.parseFeature(tokens, classParent)        
         return("ok")
 
     def parseProgram(self, tokens, root):
