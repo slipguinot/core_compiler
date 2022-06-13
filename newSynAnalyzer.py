@@ -2,7 +2,7 @@ from asyncio.windows_events import NULL
 from logging import exception
 import coolLexAnalyzer as lex
 from anytree import AnyNode, RenderTree
-from coolSemantics import symbolTable, Attr, registro, method, lookForClass, addNewClass
+from coolSemantics import symbolTable, Attr, registro, method, lookForClass, addNewClass, checkIfMethodExists, lookForInherit, addNewMethodToClass, addArgToMethod, addRetornoToMethod
 def read_tokens(path: str):
     f = open(path)
     tokens = f.readlines()
@@ -68,7 +68,7 @@ class Parser:
         inherits = AnyNode(id="INHERITS", linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children=[
                 self.parseID(tokens)
             ])
-        if(lookForClass(tokens[self.pos][0]) == True):
+        if(lookForInherit(tokens[self.pos][0]) == True):
             self.forward()
             return inherits
         else:
@@ -132,9 +132,15 @@ class Parser:
                 self.forward()
                 parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
                 self.forward()
-                self.parseExpr(tokens, root)
-                parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
-                self.forward()
+                while(True):
+                    self.parseExpr(tokens, root)
+                    if(tokens[self.pos][2] == ' VIRGULA'):
+                        virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+                        self.forward()
+                    else:                  
+                        parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
+                        self.forward()
+                        break
                 return "ok"
             #atribuicao normal
             elif(tokens[self.pos + 1][1] == ' ATRIBUICAO'):
@@ -152,6 +158,10 @@ class Parser:
                 objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
                 self.forward()
                 pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+                self.forward()
+                return "ok"
+            elif(tokens[self.pos + 1][1] == ' PARENTESES_D'):
+                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
                 self.forward()
                 return "ok"
             else:
@@ -332,6 +342,8 @@ class Parser:
             return "ok"
         return "ok"
 
+
+
     def parseFeatureMethod(self, tokens, methodParent):        
         methodName = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
         self.forward()
@@ -394,9 +406,9 @@ class Parser:
             raise Exception(f"Erro, não foi encontrado parenteses ou dois pontos na linha {node.linha} e coluna {node.coluna}.")
         
         if(tokens[self.pos + 1][1] != ' DOIS_PONTOS'):
-            methodParent = AnyNode(id = 'METHOD')
-            retorno = self.parseFeatureMethod(tokens, methodParent)
-            featureParent = AnyNode(id = 'FEATURE', children = [methodParent], parent = root)
+            featureParent = AnyNode(id = 'FEATURE', parent = root)
+            methodParent = AnyNode(id = 'METHOD', parent = featureParent)
+            retorno = self.parseFeatureMethod(tokens, methodParent)            
             return "fimMetodo"
         else:
             objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
@@ -442,8 +454,8 @@ class Parser:
                 node = AnyNode(id = "Erro, não foi encontrado tipo de herança ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
                 raise Exception(f"Erro, não foi encontrado tipo de herança ou abertura de bloco de código na linha {node.linha} e {node.coluna}.")
             inherits = self.parseInherits(tokens)
-            self.forward()
             chavesE = AnyNode(id={'type': 'CHAVES_ESQUERDA', 'value': tokens[self.pos][0]})
+            self.forward()
             classParent = AnyNode(id = 'CLASS', children = [typeIdentifier, inherits, chavesE], parent = root)
         else:
             if(tokens[self.pos + 1][1] != ' CHAVES_E'):

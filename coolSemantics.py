@@ -57,4 +57,53 @@ def addNewClass(newClass):
     newEntry = registro(newClass, [])
     symbolTable.append(newEntry)
 
+def addNewMethodToClass(classe, methodName):
+    newEntry = method(methodName, [], "")
+    for ref in symbolTable:
+        if(ref.name == classe):
+            ref.methods.append(newEntry)
+            return True
+    return False
 
+def addArgToMethod(classe, methodName, argument):
+    for ref in symbolTable:
+        if(ref.name == classe):
+            for metodo in ref.methods:
+                if(metodo.name == methodName):
+                    metodo.parametros.append(argument)
+
+def addRetornoToMethod(classe, methodName, retorno):
+        for ref in symbolTable:
+            if(ref.name == classe):
+                for metodo in ref.methods:
+                    if(metodo.name == methodName):
+                        metodo.retorno = retorno
+
+def checkIfMethodExists(nomeClasse, method):
+    for classe in symbolTable:
+        if(classe.name == nomeClasse):
+            for metodo in classe.methods:
+                if(metodo.name == method):
+                    return True
+    return False
+
+def getReturnType(method):
+    for classe in symbolTable:
+        for metodo in classe.methods:
+            if(metodo.name == method):
+                return metodo.retorno
+
+def lookForInherit(searchingFor):
+    if(searchingFor != "String" and searchingFor != "Bool" and searchingFor != "String"):
+        for ref in symbolTable:
+            if(ref.name == searchingFor):
+                return True
+    return False
+
+
+def getClassName(ancestors):
+    for ancestrais in ancestors:
+        if(ancestrais.id == "CLASS"):
+            for filho in ancestrais.children:
+                if(filho.id == "TYPE_IDENTIFIER"):
+                    return filho.children[0].id['value']
