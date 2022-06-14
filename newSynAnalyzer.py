@@ -151,9 +151,9 @@ class Parser:
             elif(tokens[self.pos + 1][1] == ' ATRIBUICAO'):
                 objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
                 self.forward()
-                atribuicao = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
+                atribuicao = AnyNode(id='ATRIBUICAO', value = tokens[self.pos][0], parent = objectIdentifier)
                 self.forward()
-                self.parseExpr(tokens, root)
+                self.parseExpr(tokens, atribuicao)
                 if(tokens[self.pos][1] == ' P_VIRGULA'):
                     pontoVirg = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
                     self.forward()
@@ -233,9 +233,9 @@ class Parser:
                     
                 self.forward()
                 if(tokens[self.pos][1] == ' ATRIBUICAO'):
-                    attr = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
+                    atribuicao = AnyNode(id='ATRIBUICAO', value = tokens[self.pos][0], parent = typeIdentifier)
                     self.forward()
-                    self.parseExpr(tokens, root)
+                    self.parseExpr(tokens, atribuicao)
                 if(tokens[self.pos][1] == ' VIRGULA'):
                     virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
                     self.forward()
@@ -311,13 +311,13 @@ class Parser:
             self.forward()
             self.parseExpr(tokens, root)
         elif(tokens[self.pos][1] == ' INTEIRO'):
-            string = AnyNode(id={'type': 'INTEGER', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='INTEGER', value = tokens[self.pos][0], parent = root)
             self.forward()
             if(tokens[self.pos][1] != ' P_VIRGULA' and tokens[self.pos][1] != ' THEN' and tokens[self.pos][1] != ' ELSE'):
                 self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' STRING'):
-            string = AnyNode(id={'type': 'STRING', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id= 'STRING', value= tokens[self.pos][0], parent = root)
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' TRUE'):
@@ -350,15 +350,15 @@ class Parser:
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' IGUAL'):
-            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='COMPARACAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
         elif(tokens[self.pos][1] == ' MENOR'):
-            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='COMPARACAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
         elif(tokens[self.pos][1] == ' MENOR_IGUAL'):
-            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='COMPARACAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"

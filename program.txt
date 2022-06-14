@@ -8,9 +8,9 @@ Class Book inherits IO {
 
     initBook(title_p : String, author_p : String) : Book {
         {
-            title <- title_p + author + 40 + out_string("teste");
+            title <- title_p;
             author <- author_p;
-            if teste() then 2 else "" fi
+            if 2 = 3 then 2 else "" fi
         }
     };
 

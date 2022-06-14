@@ -146,9 +146,17 @@ def checkIfMethodExists(nomeClasse, method):
     return False
 
 def checkIfMethodExistsEverywhere(nomeClasse, method):
+    ascendentes = []
     ascendente = getInheritance(nomeClasse)
+    while(True):
+        if(ascendente == ''):
+            break
+        else:
+            ascendentes.append(ascendente)
+            ascendente = getInheritance(ascendente)
+
     for classe in symbolTable:
-        if(classe.name == nomeClasse or classe.name == ascendente):
+        if(classe.name == nomeClasse or classe.name in ascendentes):
             for metodo in classe.methods:
                 if(metodo.name == method):
                     return True
@@ -208,7 +216,81 @@ def getReturnTypeFromMethod(nomeClasse, methodName):
 
     return ""
 
-def checkExpression(nomeClasse, expressao):   
+
+def checkExpressionType(nomeClasse, expressao):
+    nodes = findall(expressao, lambda node: node.id != 'COMPARACAO' and node.id != 'IF' and node.id != 'WHILE')
+    tipoAtual = ""
+    if(len(nodes) > 0):
+        for node in nodes:
+            if(tipoAtual == ""):
+                tipoAtual = node.id
+            else:
+                if(tipoAtual != node.id):
+                    raise Exception(f"Tipos diferentes")
+    return True
+
+def getArgType(nomeClasse, nomeMetodo, nome):
+
+    for ref in symbolTable:
+        if(ref.name == nomeClasse):
+            if(nomeMetodo != ""):
+                for metodo in ref.methods:
+                    if(metodo.name == nomeMetodo):
+                        for atr in metodo.parametros:
+                            if(atr['name'] == nome):
+                                return atr['value']
+            for atb in ref.attr:
+                if(atb['name'] == nome):
+                    return atb['tipo']
+
+    return ""
+
+def checkNodeType(nomeClasse, nomeMetodo, node, tipoAtual):
+    if(node.id == "OBJECT_IDENTIFIER"):
+        varName = node.children[0].id['value']
+        tipo = getArgType(nomeClasse, nomeMetodo, varName)
+        return tipo
+    elif(node.id == "INTEGER"):
+        return "Int"
+    elif(node.id == "STRING"):
+        return "String"
+    elif(node.id == "CHAMADA_METODO"):
+        return getReturnTypeFromMethod(nomeClasse, node.children[0].children[0].id['value'])
+    return tipoAtual
+
+def checkExpression(nomeClasse, nomeMetodo, expressao):   
+
+    ifsWhiles = findall(expressao, lambda node: node.id == "IF" or node.id == "WHILE")
+    if(len(ifsWhiles) > 0):
+        for interesse in ifsWhiles:
+            retorno = ""
+            methodCalls = findall(interesse, lambda node: node.id == "CHAMADA_METODO")
+            if(len(methodCalls) > 0):            
+                for chamada in methodCalls:
+                    retorno = getReturnTypeFromMethod(nomeClasse, chamada.children[0].children[0].id['value'])
+            comparacoes = findall(interesse, lambda node: node.id == "COMPARACAO")
+            if(len(comparacoes) > 0):
+                if(checkExpressionType(nomeClasse, comparacoes[0].ancestors[len(comparacoes[0].ancestors) - 1]) == True):
+                    retorno = 'Bool'
+            if(retorno != 'Bool'):
+                raise Exception(f"Erro no tipo de expressão no IF/While")
+    atrb = findall(expressao, lambda node: node.id == "ATRIBUICAO")
+    if(len(atrb) > 0):
+        tipo = ""
+        tipoDesejado = ""
+        for atribuicao in atrb:
+            tipoChamador = atribuicao.ancestors[len(atribuicao.ancestors) - 1]
+            if(tipoChamador.id == "OBJECT_IDENTIFIER"):
+                tipoDesejado = getArgType(nomeClasse, nomeMetodo, tipoChamador.children[0].id['value'])
+            for node in atribuicao.children:
+                if(tipoDesejado == ""):
+                    tipoDesejado = checkNodeType(nomeClasse, nomeMetodo, node, tipoDesejado)
+                else:
+                    tipo = checkNodeType(nomeClasse, nomeMetodo, node, tipoDesejado)
+                    if(tipo != tipoDesejado):
+                        raise Exception(f"Expressao invalida")
+            print("ok")
+
 
 
     # methodCall = find(expressao, lambda node: node.id == "CHAMADA_METODO")
@@ -238,7 +320,8 @@ def semanticAnalyzer(root):
             for metodo in chamadasMetodo:
                 if(checkIfMethodExistsEverywhere(nomeClasse, metodo.children[0].children[0].id['value']) == False):
                     raise Exception(f"Metodo {metodo.children[0].children[0].id['value']} não existe.")
-            expressoes = findall(classe, lambda node: node.id == "EXPRESSION")
-            for expressao in expressoes:
-                checkExpression(nomeClasse, expressao)
+            for metodo in metodos:
+                expressoes = findall(metodo, lambda node: node.id == "EXPRESSION")
+                for expressao in expressoes:
+                    checkExpression(nomeClasse, metodo.children[0].children[0].id['value'], expressao)
     return "e lá vamos nós"
