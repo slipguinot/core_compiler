@@ -2,10 +2,15 @@ Class Book inherits IO {
     title : String;
     author : String;
 
+    teste () : Bool {
+        True
+    };
+
     initBook(title_p : String, author_p : String) : Book {
         {
-            title <- title_p;
+            title <- title_p + author + 40 + out_string("teste");
             author <- author_p;
+            if teste() then 2 else "" fi
         }
     };
 
@@ -13,6 +18,25 @@ Class Book inherits IO {
         {
             out_string("title:      ").out_string(title).out_string("\n");
             out_string("author:     ").out_string(author).out_string("\n");
+        }
+    };
+};
+
+Class Article inherits Book {
+    per_title : String;
+
+    initArticle(title_p : String, author_p : String,
+        per_title_p : String) : Article {
+        {
+            initBook(title_p, author_p);
+            per_title <- per_title_p;
+        }
+    };
+
+    print() : Book {
+        {
+            x.print();
+            out_string("periodical:  ").out_string(per_title).out_string("\n");
         }
     };
 };

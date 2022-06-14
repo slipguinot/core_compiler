@@ -2,7 +2,7 @@ from asyncio.windows_events import NULL
 from logging import exception
 import coolLexAnalyzer as lex
 from anytree import AnyNode, RenderTree
-from coolSemantics import symbolTable, Attr, registro, method, lookForClass, addNewClass, checkIfMethodExists, lookForInherit, addNewMethodToClass, addArgToMethod, addRetornoToMethod
+from coolSemantics import semanticAnalyzer, lookForClass, addNewClass, lookForInherit, addInheritance
 def read_tokens(path: str):
     f = open(path)
     tokens = f.readlines()
@@ -11,7 +11,7 @@ def read_tokens(path: str):
     list_tokens = []
 
     for token in tokens:
-        lista = token.replace('\n', '').split(',')
+        lista = token.replace('\n', '').split('|')
         list_tokens.append((lista[0], lista[1], lista[2], lista[3]))
 
     return list_tokens
@@ -46,6 +46,9 @@ class Parser:
                 self.pos = rollback
                 return True
             else:
+                if(tokens[self.pos][1] == ' CLASS'):
+                    self.pos = rollback
+                    return False
                 self.forward()
 
         self.pos = rollback
@@ -97,15 +100,16 @@ class Parser:
         if(tokens[self.pos][1] != ' OBJECT_IDENTIFIER' or tokens[self.pos + 1][1] != ' DOIS_PONTOS' or tokens[self.pos + 2][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Feature mal formada, o padrão é: ID : Tipo;", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
             raise Exception("Erro, Feature mal formada, o padrão é: [ID : Tipo;] Rever linha {node.linha} e coluna {node.coluna}.")
-        objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+        parametro = AnyNode(id= 'PARAMETRO', parent = root)
+        objectIdentifier = AnyNode(id= 'NOME_PARAMETRO', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = parametro)
         self.forward()
-        doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = root)
+        doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]}, parent = parametro)
         self.forward()
-        typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+        typeIdentifier = AnyNode(id= 'TIPO_PARAMETRO', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = parametro)
         if(lookForClass(tokens[self.pos][0]) != True):
             raise Exception(f"Classe {tokens[self.pos]} não existe.")
         self.forward()
-        if(tokens[self.pos][2] == ' VIRGULA'):
+        if(tokens[self.pos][1] == ' VIRGULA'):
             virg = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
         elif(tokens[self.pos][1] == ' PARENTESES_D'):
@@ -128,17 +132,18 @@ class Parser:
                 return "ok"
             #ID(algo)
             elif(tokens[self.pos + 1][1] == ' PARENTESES_E'):
-                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
+                chamada = AnyNode(id = "CHAMADA_METODO", parent = root)
+                objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = chamada)
                 self.forward()
-                parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
+                parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = chamada)
                 self.forward()
                 while(True):
-                    self.parseExpr(tokens, root)
-                    if(tokens[self.pos][2] == ' VIRGULA'):
-                        virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+                    self.parseExpr(tokens, chamada)
+                    if(tokens[self.pos][1] == ' VIRGULA'):
+                        virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = chamada)
                         self.forward()
                     else:                  
-                        parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
+                        parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = chamada)
                         self.forward()
                         break
                 return "ok"
@@ -172,23 +177,28 @@ class Parser:
         elif(tokens[self.pos][1] == ' IF'):
             ifstart = AnyNode(id= 'IF', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' THEN'):
+                self.parseExpr(tokens, ifstart)
             thenStart = AnyNode(id= 'THEN', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' ELSE'):
+                self.parseExpr(tokens, thenStart)
             elseStart = AnyNode(id= 'ELSE', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' FI'):
+                self.parseExpr(tokens, elseStart)
             fiStart = AnyNode(id= 'FI', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' WHILE'):
             whileStart = AnyNode(id= 'WHILE', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' LOOP'):
+                self.parseExpr(tokens, whileStart)
             loopStart = AnyNode(id= 'LOOP', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' POOL'):
+                self.parseExpr(tokens, loopStart)
             pool = AnyNode(id= 'POOL', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], parent = root)
             self.forward()
             return "ok"
@@ -196,12 +206,16 @@ class Parser:
         elif(tokens[self.pos][1] == ' CHAVES_E'):
             chavesE = AnyNode(id={'type': 'CHAVES_E', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' CHAVES_D'):
+                self.parseExpr(tokens, root)
+            parentesesD = AnyNode(id={'type': 'CHAVES_D', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' PARENTESES_E'):
             parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
-            self.parseExpr(tokens, root)
+            while(tokens[self.pos][1] != ' PARENTESES_D'):
+                self.parseExpr(tokens, root)
             parentesesD = AnyNode(id={'type': 'PARENTESES_D', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             return "ok"
@@ -222,7 +236,7 @@ class Parser:
                     attr = AnyNode(id={'type': 'ATRIBUICAO', 'value': tokens[self.pos][0]}, parent = root)
                     self.forward()
                     self.parseExpr(tokens, root)
-                if(tokens[self.pos][2] == ' VIRGULA'):
+                if(tokens[self.pos][1] == ' VIRGULA'):
                     virgula = AnyNode(id={'type': 'VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
                     self.forward()
                 else:
@@ -299,7 +313,7 @@ class Parser:
         elif(tokens[self.pos][1] == ' INTEIRO'):
             string = AnyNode(id={'type': 'INTEGER', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
-            if(tokens[self.pos][1] != ' P_VIRGULA'):
+            if(tokens[self.pos][1] != ' P_VIRGULA' and tokens[self.pos][1] != ' THEN' and tokens[self.pos][1] != ' ELSE'):
                 self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' STRING'):
@@ -307,11 +321,11 @@ class Parser:
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' TRUE'):
-            string = AnyNode(id={'type': 'TRUE', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id={'type': 'BOOL', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' FALSE'):
-            string = AnyNode(id={'type': 'FALSE', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id={'type': 'BOOL', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             return "ok"
         #tirando isso sobra as operações binárias, são os casos de recursão a esquerda
@@ -336,7 +350,20 @@ class Parser:
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' IGUAL'):
-            string = AnyNode(id={'type': 'IGUALDADE', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+        elif(tokens[self.pos][1] == ' MENOR'):
+            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+        elif(tokens[self.pos][1] == ' MENOR_IGUAL'):
+            string = AnyNode(id={'type': 'COMPARACAO', 'value': tokens[self.pos][0]}, parent = root)
+            self.forward()
+            self.parseExpr(tokens, root)
+            return "ok"
+        elif(tokens[self.pos][1] == ' P_VIRGULA'):
+            string = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
@@ -345,7 +372,7 @@ class Parser:
 
 
     def parseFeatureMethod(self, tokens, methodParent):        
-        methodName = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
+        methodName = AnyNode(id= 'METHOD_NAME', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
         self.forward()
         parentesesE = AnyNode(id={'type': 'PARENTESES_E', 'value': tokens[self.pos][0]}, parent = methodParent)
         self.forward()
@@ -368,7 +395,7 @@ class Parser:
         if(tokens[self.pos][1] != ' TYPE_IDENTIFIER'):
             node = AnyNode(id = "Faltando TYPE_IDENTIFIER.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
             raise Exception(f"Erro, faltando TYPE_IDENTIFIER na linha {node.linha} e coluna {node.coluna}.")
-        typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
+        typeIdentifier = AnyNode(id= 'TIPO_RETORNO', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = methodParent)
         if(lookForClass(tokens[self.pos][0]) != True):
                 raise Exception(f"Classe {tokens[self.pos]} não existe.")
                 
@@ -411,7 +438,7 @@ class Parser:
             retorno = self.parseFeatureMethod(tokens, methodParent)            
             return "fimMetodo"
         else:
-            objectIdentifier = AnyNode(id= 'OBJECT_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
+            objectIdentifier = AnyNode(id= 'NOME_ATRIBUTO', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
             self.forward()
             doisPontos = AnyNode(id={'type': 'DOIS_PONTOS', 'value': tokens[self.pos][0]})
             self.forward()
@@ -419,7 +446,7 @@ class Parser:
                 node = AnyNode(id = "Erro, não foi encontrado tipo identificador da feature e/ou ponto virgula.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
                 raise Exception(f"Erro, não foi encontrado tipo identificador da feature e/ou ponto virgula na linha {node.linha} e coluna {node.coluna}.")
 
-            typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
+            typeIdentifier = AnyNode(id= 'TIPO_ATRIBUTO', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
             if(lookForClass(tokens[self.pos][0]) != True):
                 raise Exception(f"Classe {tokens[self.pos]} não existe.")
                 
@@ -441,7 +468,7 @@ class Parser:
             node = AnyNode(id = "Erro, não foi encontrado INHERITS ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
             raise Exception(f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}.")
        
-        typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
+        typeIdentifier = AnyNode(id= 'CLASS_NAME', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)])
         if(lookForClass(tokens[self.pos][0]) == True):
             #erro semantico, classe já foi declarada antes
             raise Exception(f"Erro semantico, classe {tokens[self.pos][0]} não pode ser reDeclarada. Linha {node.linha} e coluna {node.coluna}.")
@@ -454,14 +481,16 @@ class Parser:
                 node = AnyNode(id = "Erro, não foi encontrado tipo de herança ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
                 raise Exception(f"Erro, não foi encontrado tipo de herança ou abertura de bloco de código na linha {node.linha} e {node.coluna}.")
             inherits = self.parseInherits(tokens)
+            addInheritance(typeIdentifier.children[0].id['value'], inherits.children[0].id['value'])
             chavesE = AnyNode(id={'type': 'CHAVES_ESQUERDA', 'value': tokens[self.pos][0]})
             self.forward()
             classParent = AnyNode(id = 'CLASS', children = [typeIdentifier, inherits, chavesE], parent = root)
         else:
-            if(tokens[self.pos + 1][1] != ' CHAVES_E'):
-                node = AnyNode(id = "Erro, não foi encontrado INHERITS ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
-                raise Exception (f"Erro, não foi encontrado INHERITS ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}.")
+            if(tokens[self.pos][1] != ' CHAVES_E'):
+                node = AnyNode(id = "Erro, não foi encontrado CHAVES_E ou abertura de bloco de código.", linha = tokens[self.pos][2], coluna = tokens[self.pos][3], parent = root)
+                raise Exception (f"Erro, não foi encontrado CHAVES_E ou abertura de bloco de código na linha {node.linha} e coluna {node.coluna}.")
             chavesE = AnyNode(id={'type': 'CHAVES_ESQUERDA', 'value': tokens[self.pos][0]})
+            self.forward()
             classParent = AnyNode(id = 'CLASS', children = [typeIdentifier, chavesE], parent = root)
         
         while(self.lookAhead(tokens, " DOIS_PONTOS") != False):
@@ -495,4 +524,4 @@ result = p.parseProgram(teste, root)
 for pre, _, node in RenderTree(root):
     print("%s%s" % (pre, node.id))
 
-print(result)
+semanticAnalyzer(root)

@@ -98,8 +98,8 @@ tokens = [
     'DIFERENTE',
     'MAIS',
     'BARRA',
-    'MENOR',
     'MENOR_IGUAL',
+    'MENOR',
     'MAIOR',
     'ATRIBUICAO_CASE',
     'WHITESPACE',
@@ -147,8 +147,8 @@ lexemes = [
     r'!=',
     r'\+',
     r'/',
-    r'<',
     r'<=',
+    r'<',
     r'>',
     r'=>',
     r'[ \t\f\r\v]+', #WHITESPACE
@@ -200,6 +200,6 @@ for m in re.finditer(tokenPattern, fullCode):
         lexeme.append(token_lexeme)
         row.append(lin_num)
         #print('({0}, {1})'.format(token_type, token_lexeme))
-        list_tok.append(token_lexeme.replace('\n', '') + ', ' + token_type + ',' + str(lin_num) + ',' + str(col))
+        list_tok.append(token_lexeme.replace('\n', '') + '| ' + token_type + '|' + str(lin_num) + '|' + str(col))
            
 save_file('result.txt', list_tok)
