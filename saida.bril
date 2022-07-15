@@ -1,0 +1,48 @@
+@teste_Book() : Bool
+{
+	True
+}
+
+@initBook_Book(this: ptr<int>, title_p: Int, author_p: Int) : ptr<int>
+{
+	store title title_p;
+	 aux: eq 2 3;
+	 br aux THEN ELSE;
+	 THEN: 2;
+	 jmp NEXT;
+	 ELSE: 5;
+	 NEXT: 	store author author_p;
+	
+}
+
+@initArticle_Book(this: ptr<int>, title_p: Int, author_p: Int, per_title_p: Int) : ptr<int>
+{
+	call @initBook title_p author_p;
+	store per_title per_title_p;
+
+}
+
+@teste_Article() : Bool
+{
+	True
+}
+
+@initBook_Article(this: ptr<int>, title_p: Int, author_p: Int) : ptr<int>
+{
+	store title title_p;
+	 aux: eq 2 3;
+	 br aux THEN ELSE;
+	 THEN: 2;
+	 jmp NEXT;
+	 ELSE: 5;
+	 NEXT: 	store author author_p;
+	
+}
+
+@initArticle_Article(this: ptr<int>, title_p: Int, author_p: Int, per_title_p: Int) : ptr<int>
+{
+	call @initBook title_p author_p;
+	store per_title per_title_p;
+
+}
+

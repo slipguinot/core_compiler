@@ -3,6 +3,7 @@ from logging import exception
 import coolLexAnalyzer as lex
 from anytree import AnyNode, RenderTree
 from coolSemantics import semanticAnalyzer, lookForClass, addNewClass, lookForInherit, addInheritance
+from coolBrilGenerator import BrilCodeGenerator
 def read_tokens(path: str):
     f = open(path)
     tokens = f.readlines()
@@ -270,7 +271,7 @@ class Parser:
                 raise Exception(f"Classe {tokens[self.pos]} não existe.")
                 
             self.forward()
-            atribuicaoCase = AnyNode(id={'type': 'ATRIBUICAO_CASE', 'value': tokens[self.pos][0]}, parent = root)
+            atribuicaoCase = AnyNode(id='ATRIBUICAO_CASE', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             while(True):
@@ -295,7 +296,7 @@ class Parser:
                     break
             return "ok"
         elif(tokens[self.pos][1] == ' NEW'):
-            parentesesE = AnyNode(id={'type': 'NEW', 'value': tokens[self.pos][0]}, parent = root)
+            parentesesE = AnyNode(id='NEW', value = tokens[self.pos][0], parent = root)
             self.forward()
             typeIdentifier = AnyNode(id= 'TYPE_IDENTIFIER', linha=tokens[self.pos][2], coluna=tokens[self.pos][3], children = [self.parseID(tokens)], parent = root)
             if(lookForClass(tokens[self.pos][0]) != True):
@@ -303,11 +304,11 @@ class Parser:
                 
             self.forward()
         elif(tokens[self.pos][1] == ' ISVOID'):
-            isvoid = AnyNode(id={'type': 'ISVOID', 'value': tokens[self.pos][0]}, parent = root)
+            isvoid = AnyNode(id='ISVOID', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
         elif(tokens[self.pos][1] == ' NOT'):
-            isnot = AnyNode(id={'type': 'NOT', 'value': tokens[self.pos][0]}, parent = root)
+            isnot = AnyNode(id='NOT', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
         elif(tokens[self.pos][1] == ' INTEIRO'):
@@ -321,31 +322,31 @@ class Parser:
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' TRUE'):
-            string = AnyNode(id={'type': 'BOOL', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id= "BOOL", value = tokens[self.pos][0], parent = root)
             self.forward()
             return "ok"
         elif(tokens[self.pos][1] == ' FALSE'):
-            string = AnyNode(id={'type': 'BOOL', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id= "BOOL", value = tokens[self.pos][0], parent = root)
             self.forward()
             return "ok"
         #tirando isso sobra as operações binárias, são os casos de recursão a esquerda
         elif(tokens[self.pos][1] == ' MAIS'):
-            string = AnyNode(id={'type': 'SOMA', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='SOMA', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' HIFEN'):
-            string = AnyNode(id={'type': 'SUBTRACAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='SUBTRACAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' BARRA'):
-            string = AnyNode(id={'type': 'DIVISAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id= 'DIVISAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' ASTERISCO'):
-            string = AnyNode(id={'type': 'MULTIPLICACAO', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='MULTIPLICACAO', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
@@ -363,7 +364,7 @@ class Parser:
             self.parseExpr(tokens, root)
             return "ok"
         elif(tokens[self.pos][1] == ' P_VIRGULA'):
-            string = AnyNode(id={'type': 'P_VIRGULA', 'value': tokens[self.pos][0]}, parent = root)
+            string = AnyNode(id='P_VIRGULA', value = tokens[self.pos][0], parent = root)
             self.forward()
             self.parseExpr(tokens, root)
             return "ok"
@@ -524,4 +525,6 @@ result = p.parseProgram(teste, root)
 for pre, _, node in RenderTree(root):
     print("%s%s" % (pre, node.id))
 
-semanticAnalyzer(root)
+#semanticAnalyzer(root)
+
+BrilCodeGenerator(root)
